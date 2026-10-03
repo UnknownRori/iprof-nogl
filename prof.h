@@ -21,10 +21,9 @@ extern "C" {
 extern void Prof_update(int record);
 
 /*
- *  Prof_draw_gl -- display the current report via OpenGL
+ *  Prof_draw -- display the current report
  *
- *  You must provide a callable text-printing function.
- *  Put the opengl state into a 2d rendering mode.
+ *  You must provide callbacks for drawing text and rectangles.
  *
  *  Parameters:
  *    <sx,sy>         --  location where top line is drawn
@@ -37,16 +36,16 @@ extern void Prof_update(int record);
  *    text_width      --  a function that computes the pixel-width of
  *                        a given string before printing. you can fake with a
  *                        simple approximation of width('0')*strlen(str)
- *
+ *    print_rectangle --  function to display rectangle
  *  to avoid overprinting, you can make print_text truncate long strings
  */
-extern void Prof_draw_gl(float sx, float sy,
-                         float width, float height,
-                         float line_spacing,
-                         int precision,
-                         void (*print_text)(float x, float y, char *str, float r, float g, float b, float a),
-                         float (*text_width)(char *str),
-                         void (*draw_rectangle)(float x0, float y0, float x1, float y1, float r, float g, float b, float a));
+extern void Prof_draw(float sx, float sy,
+                      float width, float height,
+                      float line_spacing,
+                      int precision,
+                      void (*print_text)(float x, float y, char *str, float r, float g, float b, float a),
+                      float (*text_width)(char *str),
+                      void (*draw_rectangle)(float x0, float y0, float x1, float y1, float r, float g, float b, float a));
 
 /*
  *  Parameters
@@ -58,9 +57,9 @@ extern void Prof_draw_gl(float sx, float sy,
  *                         8.0 would produce a 160-pixel tall display,
  *                         assuming screenspace is in pixels
  */
-extern void Prof_draw_graph_gl(float sx, float sy,
-                               float x_spacing, float y_spacing,
-                               void (*draw_line)(float x0, float y0, float x1, float y1, float r, float g, float b, float a));
+extern void Prof_draw_graph(float sx, float sy,
+                            float x_spacing, float y_spacing,
+                            void (*draw_line)(float x0, float y0, float x1, float y1, float r, float g, float b, float a));
 
 typedef enum
 {

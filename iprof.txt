@@ -1,3 +1,8 @@
+NOTE: Below is the original manual for IProf as found at https://www.silverspaceship.com/src/iprof/
+No modifications were made to it except this not above "---".
+
+---
+
 IPROF: A Portable Industrial-Strength Interactive Profiler for C++ and C
 by Sean Barrett
 

@@ -46,7 +46,7 @@ static int get_colors(float factor,
    return 1;
 }
 
-Prof_extern_C void Prof_draw_graph_gl(float sx, float sy, float x_spacing, float y_spacing, void (*draw_line)(float x0, float y0, float x1, float y1, float r, float g, float b, float a))
+Prof_extern_C void Prof_draw_graph(float sx, float sy, float x_spacing, float y_spacing, void (*draw_line)(float x0, float y0, float x1, float y1, float r, float g, float b, float a))
 {
 #ifdef Prof_ENABLED
    Prof_Begin(iprof_draw_graph)
@@ -118,9 +118,9 @@ static void float_to_string(char *buf, float num, int precision)
    sprintf(buf, formats[precision], num);
 }
 
-Prof_extern_C void Prof_draw_gl(float sx, float sy,
-                                float full_width, float height,
-                                float line_spacing, int precision,
+Prof_extern_C void Prof_draw(float sx, float sy,
+                             float full_width, float height,
+                             float line_spacing, int precision,
     void (*printText)(float x, float y, char *str, float r, float g, float b, float a),
     float (*textWidth)(char *str),
     void (*draw_rectangle)(float x0, float y0, float x1, float y1, float r, float g, float b, float a))

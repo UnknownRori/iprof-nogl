@@ -61,8 +61,8 @@ int main()
                 }
                 Prof_End;
             }
-            Prof_draw_gl(0, 0, WIDTH, HEIGHT, FONT_SIZE, 2, print_text, text_width, draw_rectangle);
-            Prof_draw_graph_gl(0, 0, 2.0, 8.0, draw_line);
+            Prof_draw(0, 0, WIDTH, HEIGHT, FONT_SIZE, 2, print_text, text_width, draw_rectangle);
+            Prof_draw_graph(0, 0, 2.0, 8.0, draw_line);
         EndDrawing();
         Prof_update(record);
     }
