@@ -7,11 +7,11 @@
 Prof_Define(_global);
 
 Prof_Zone_Stack Prof_dummy  ;  // impossible parent
-Prof_Zone_Stack Prof_dummy2 ; 
+Prof_Zone_Stack Prof_dummy2 ;
 Prof_Zone_Stack *Prof_stack = &Prof_dummy2;
 
 int Prof_num_zones;
-Prof_Zone *Prof_zones[];
+Prof_Zone *Prof_zones[512];
 
 #define MAX_HASH_SIZE     65536   // not unlimited, to catch unbalanced BEGIN/END_PROF
 #define INIT_HASH_SIZE    256     // balance resource usage and avoid initial growth

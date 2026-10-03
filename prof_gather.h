@@ -13,6 +13,8 @@
 
 #ifdef WIN32
   #include "prof_win32.h"
+#elif defined(__linux__)
+  #include "prof_linux.h"
 #else
   #error "need to define Prof_get_timestamp() and Prof_Int64"
 #endif
@@ -111,7 +113,7 @@ static Prof_Int64 Prof_time;
 #ifdef __cplusplus
 
    #define Prof(x)        static Prof_Define(x); Prof_Scope(x)
- 
+
    #define Prof_Scope(x)   \
       Prof_Begin_Cache(x); \
       Prof_Scope_Var Prof_scope_var(Prof_region_ ## x, Prof_cache)

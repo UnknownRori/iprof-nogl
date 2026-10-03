@@ -44,8 +44,9 @@ extern void Prof_draw_gl(float sx, float sy,
                          float width, float height,
                          float line_spacing,
                          int precision,
-                         void (*print_text)(float x, float y, char *str),
-                         float (*text_width)(char *str));
+                         void (*print_text)(float x, float y, char *str, float r, float g, float b, float a),
+                         float (*text_width)(char *str),
+                         void (*draw_rectangle)(float x0, float y0, float x1, float y1, float r, float g, float b, float a));
 
 /*
  *  Parameters
@@ -58,7 +59,8 @@ extern void Prof_draw_gl(float sx, float sy,
  *                         assuming screenspace is in pixels
  */
 extern void Prof_draw_graph_gl(float sx, float sy,
-                               float x_spacing, float y_spacing);
+                               float x_spacing, float y_spacing,
+                               void (*draw_line)(float x0, float y0, float x1, float y1, float r, float g, float b, float a));
 
 typedef enum
 {
@@ -90,4 +92,3 @@ extern void Prof_set_recursion(Prof_Recursion_Mode e);
 #endif
 
 #endif // Prof_INC_PROF_H
-

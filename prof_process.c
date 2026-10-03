@@ -31,7 +31,7 @@
 // threshhold for a moving average of an integer to be at zero
 #define INT_ZERO_THRESHHOLD                0.25
 
-Prof_Zone *Prof_zones[MAX_PROFILING_ZONES];
+extern Prof_Zone *Prof_zones[MAX_PROFILING_ZONES];
 
 #ifdef Prof_ZONE_HISTORY
 static float zone_history[MAX_PROFILING_ZONES][NUM_FRAME_SLOTS]; // 256K
@@ -746,7 +746,53 @@ static int id(Prof_Zone *z)
    return h;
 }
 
-void Prof_graph(int num_frames, void (*callback)(int id, int x0, int x1, float *values, void *data), void *data)
+static void graph_func(int id, int x0, int x1, float *values, void *data, void (*draw_line)(float x0, float y0, float x1, float y1, float r, float g, float b, float a))
+{
+   GraphLocation *loc = (GraphLocation *) data;
+   int i, r,g,b;
+
+   // trim out values that are under 0.2 ms to accelerate rendering
+   while (x0 < x1 && (*values < 0.0002f)) { ++x0; ++values; }
+   while (x1 > x0 && (values[x1-1-x0] < 0.0002f)) --x1;
+
+   float rf, gf, bf, af;
+
+   if (id == 0) {
+       rf = 1;
+       gf = 1;
+       bf = 1;
+       af = 0.5;
+   } else {
+      if (x0 == x1) return;
+
+      id = (id >> 8) + id;
+      r = id * 37;
+      g = id * 59;
+      b = id * 45;
+      rf = ((r & 127) + 80)/255.f;
+      gf = ((g & 127) + 80)/255.f;
+      bf = ((b & 127) + 80)/255.f;
+      af = 1.0f;
+   }
+
+   if (x0 == x1) {
+      float x,y;
+      x = loc->x0 + x0 * loc->sx;
+      y = loc->y0 + values[0] * loc->sy;
+      draw_line(x, loc->y0, x, y, rf, gf, bf, af);
+  }
+   float px, py;
+   for (i=0; i < x1-x0; ++i) {
+      float x,y;
+      x = loc->x0 + (i+x0) * loc->sx;
+      y = loc->y0 + values[i] * loc->sy;
+      if (i != 0) draw_line(px, py, x, y, rf, gf, bf, af);
+      px = x;
+      py = y;
+   }
+}
+
+void Prof_graph(int num_frames, void (*draw_line)(float x0, float y0, float x1, float y1, float r, float g, float b, float a), void *data)
 {
 #ifdef Prof_ZONE_HISTORY
    int i,h = history_index;
@@ -755,17 +801,17 @@ void Prof_graph(int num_frames, void (*callback)(int id, int x0, int x1, float *
 
    for (i=0; i < Prof_num_zones; ++i) {
       if (h >= num_frames) {
-         callback(id(Prof_zones[i]), 0, num_frames, &zone_history[i][h-num_frames], data);
+         graph_func(id(Prof_zones[i]), 0, num_frames, &zone_history[i][h-num_frames], data, draw_line);
       } else {
-         callback(id(Prof_zones[i]), num_frames - h, num_frames, &zone_history[i][0], data);
-         callback(id(Prof_zones[i]), 0, num_frames-h, &zone_history[i][NUM_FRAME_SLOTS-(num_frames-h)], data);
+         graph_func(id(Prof_zones[i]), num_frames - h, num_frames, &zone_history[i][0], data, draw_line);
+         graph_func(id(Prof_zones[i]), 0, num_frames-h, &zone_history[i][NUM_FRAME_SLOTS-(num_frames-h)], data, draw_line);
       }
    }
 
    // display frame "cursor"
    if (display_frame != 0) {
       float value[2] = { 2.0, 0 };
-      callback(0, NUM_FRAME_SLOTS-1-display_frame, NUM_FRAME_SLOTS-1-display_frame, value, data);
+      graph_func(0, NUM_FRAME_SLOTS-1-display_frame, NUM_FRAME_SLOTS-1-display_frame, value, data, draw_line);
    }
 #endif
 }

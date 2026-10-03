@@ -2,9 +2,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
-#include <gl/gl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "prof.h"
 #include "prof_internal.h"
 
@@ -46,66 +46,12 @@ static int get_colors(float factor,
    return 1;
 }
 
-static void draw_rectangle(float x0, float y0, float x1, float y1)
-{
-   // FACE_CULL is disabled so winding doesn't matter
-   glVertex2f(x0, y0);
-   glVertex2f(x1, y0);
-   glVertex2f(x1, y1);
-   glVertex2f(x0, y1);
-}
-
-typedef struct
-{
-   float x0,y0;
-   float sx,sy;
-} GraphLocation;
-
-static void graph_func(int id, int x0, int x1, float *values, void *data)
-{
-   GraphLocation *loc = (GraphLocation *) data;
-   int i, r,g,b;
-
-   // trim out values that are under 0.2 ms to accelerate rendering
-   while (x0 < x1 && (*values < 0.0002f)) { ++x0; ++values; }
-   while (x1 > x0 && (values[x1-1-x0] < 0.0002f)) --x1;
-
-   if (id == 0)
-      glColor4f(1,1,1,0.5);
-   else {
-      if (x0 == x1) return;
-
-      id = (id >> 8) + id;
-      r = id * 37;
-      g = id * 59;
-      b = id * 45;
-#pragma warning(disable:4761)
-      glColor3ub((r & 127) + 80, (g & 127) + 80, (b & 127) + 80);
-   }
-
-   glBegin(GL_LINE_STRIP);
-   if (x0 == x1) {
-      float x,y;
-      x = loc->x0 + x0 * loc->sx;
-      y = loc->y0 + values[0] * loc->sy;
-      glVertex2f(x,loc->y0);
-      glVertex2f(x, y);
-   }
-   for (i=0; i < x1-x0; ++i) {
-      float x,y;
-      x = loc->x0 + (i+x0) * loc->sx;
-      y = loc->y0 + values[i] * loc->sy;
-      glVertex2f(x,y);
-   }
-   glEnd();
-}
-
-Prof_extern_C void Prof_draw_graph_gl(float sx, float sy, float x_spacing, float y_spacing)
+Prof_extern_C void Prof_draw_graph_gl(float sx, float sy, float x_spacing, float y_spacing, void (*draw_line)(float x0, float y0, float x1, float y1, float r, float g, float b, float a))
 {
 #ifdef Prof_ENABLED
    Prof_Begin(iprof_draw_graph)
    GraphLocation loc = { sx, sy, x_spacing, y_spacing * 1000 };
-   Prof_graph(128, graph_func, &loc);
+   Prof_graph(128, draw_line, &loc);
    Prof_End
 #endif
 }
@@ -175,13 +121,14 @@ static void float_to_string(char *buf, float num, int precision)
 Prof_extern_C void Prof_draw_gl(float sx, float sy,
                                 float full_width, float height,
                                 float line_spacing, int precision,
-    void (*printText)(float x, float y, char *str), float (*textWidth)(char *str))
+    void (*printText)(float x, float y, char *str, float r, float g, float b, float a),
+    float (*textWidth)(char *str),
+    void (*draw_rectangle)(float x0, float y0, float x1, float y1, float r, float g, float b, float a))
 {
 #ifdef Prof_ENABLED
    Prof_Begin(iprof_draw)
 
    int i,j,n,o;
-   GLuint cull, texture;
    float backup_sy;
 
    float field_width = textWidth("5555.55");
@@ -197,35 +144,42 @@ Prof_extern_C void Prof_draw_gl(float sx, float sy,
    if (precision < 1) precision = 1;
    if (precision > 4) precision = 4;
 
-   // disable face culling to avoid having to get winding correct
-   texture = glIsEnabled(GL_TEXTURE_2D);
-   cull = glIsEnabled(GL_CULL_FACE);
-   if (cull == GL_TRUE) {
-      glDisable(GL_CULL_FACE);
-   }
-
    pob = Prof_create_report();
+
+   float rf, gf, bf, af;
 
    for (i=0; i < NUM_TITLE; ++i) {
       if (pob->title[i]) {
          float header_x0 = sx;
          float header_x1 = header_x0 + full_width;
 
-         if (i == 0)
-            glColor4f(0.1f, 0.3f, 0, 0.85);
-         else
-            glColor4f(0.2f, 0.1f, 0.1f, 0.85);
+         if (i == 0) {
+             rf = 0.1f;
+             gf = 0.3f;
+             bf = 0;
+             af = 0.85;
+         } else {
+             rf = 0.2f;
+             gf = 0.1f;
+             bf = 0.1f;
+             af = 0.85;
+         }
 
-         glBegin(GL_QUADS);
-         draw_rectangle(header_x0, sy-2, header_x1, sy-line_spacing+2);
-         glEnd();
+         draw_rectangle(header_x0, sy-2, header_x1, sy-line_spacing+2, rf, gf, bf, af);
 
-         if (i == 0) 
-            glColor4f(0.6, 0.4, 0, 0);
-         else
-            glColor4f(0.8f, 0.1f, 0.1f, 0);
+         if (i == 0) {
+             rf = 0.6;
+             gf = 0.4;
+             bf = 0;
+             af = 0;
+         } else {
+             rf = 0.8f;
+             gf = 0.1f;
+             bf = 0.1f;
+             af = 0;
+         }
 
-         printText(sx+2, sy, pob->title[i]);
+         printText(sx+2, sy, pob->title[i], rf, gf, bf, af);
 
          sy += 1.5*line_spacing;
          height -= abs(line_spacing)*1.5;
@@ -243,43 +197,57 @@ Prof_extern_C void Prof_draw_gl(float sx, float sy,
 
    backup_sy = sy;
 
-   // Draw the background colors for the zone data.
-   glDisable(GL_TEXTURE_2D);
-   glBegin(GL_QUADS);
+   rf = 0;
+   gf = 0;
+   bf = 0;
+   af = 0.85;
 
-   glColor4f(0,0,0,0.85);
-   draw_rectangle(sx, sy, sx + full_width, sy - line_spacing);
+   draw_rectangle(sx, sy, sx + full_width, sy - line_spacing, rf, gf, bf, af);
    sy += line_spacing;
 
    for (i = 0; i < n; i++) {
       float y0, y1;
 
       if (i & 1) {
-         glColor4f(0.1, 0.1f, 0.2, 0.85);
+          rf = 0.1;
+          gf =  0.1f;
+          bf =  0.2;
+          af =  0.85;
       } else {
-         glColor4f(0.1f, 0.1f, 0.3, 0.85);
+          rf = 0.1f;
+          gf =  0.1f;
+          bf =  0.3;
+          af =  0.85;
       }
-      if (i+o == pob->hilight)
-         glColor4f(0.3f, 0.3f, 0.1f, 0.85);
+      if (i+o == pob->hilight) {
+          rf = 0.3f;
+          gf = 0.3f;
+          bf = 0.1f;
+          af = 0.85;
+      }
 
       y0 = sy;
       y1 = sy - line_spacing;
 
-      draw_rectangle(sx, y0, sx + full_width, y1);
+      draw_rectangle(sx, y0, sx + full_width, y1, rf, gf, bf, af);
       sy += line_spacing;
    }
-   glEnd();
 
    sy = backup_sy;
-   glColor4f(0.7,0.7,0.7,0);
+   rf = 0.7;
+   gf = 0.7;
+   bf = 0.7;
+   af = 0;
+
 
    if (pob->header[0])
-      printText(sx+8, sy, pob->header[0]);
+      printText(sx+8, sy, pob->header[0], rf, gf, bf, af);
 
    for (j=1; j < NUM_HEADER; ++j)
       if (pob->header[j])
-         printText(sx + name_width + field_width * (j-1) + 
-            field_width/2 - textWidth(pob->header[j])/2, sy, pob->header[j]);
+         printText(sx + name_width + field_width * (j-1) +
+            field_width/2 - textWidth(pob->header[j])/2, sy, pob->header[j],
+            rf, gf, bf, af);
 
    sy += line_spacing;
 
@@ -300,11 +268,17 @@ Prof_extern_C void Prof_draw_gl(float sx, float sy,
       else
          sprintf(b, "%s", r->name);
       if (get_colors(r->heat, text_color, glow_color, &glow_alpha)) {
-         glColor4f(glow_color[0], glow_color[1], glow_color[2], glow_alpha);
-         printText(x+2, sy-1, buf);
+         rf = glow_color[0];
+         gf = glow_color[1];
+         bf = glow_color[2];
+         af = glow_alpha;
+         printText(x+2, sy-1, buf, rf, gf, bf, af);
       }
-      glColor3fv(text_color);
-      printText(x + 1, sy, buf);
+      rf = text_color[0];
+      gf = text_color[1];
+      bf = text_color[2];
+      af = 1.0f;
+      printText(x + 1, sy, buf, rf, gf, bf, af);
 
       for (j=0; j < NUM_VALUES; ++j) {
          if (r->value_flag & (1 << j)) {
@@ -312,20 +286,15 @@ Prof_extern_C void Prof_draw_gl(float sx, float sy,
             float_to_string(buf, r->values[j], j == 2 ? 2 : precision);
             pad = field_width- plus_width - textWidth(buf);
             if (r->indent) pad += plus_width;
-            printText(sx + pad + name_width + field_width * j, sy, buf);
+            printText(sx + pad + name_width + field_width * j, sy, buf, rf, gf, bf, af);
          }
       }
-              
+
 
       sy += line_spacing;
    }
 
    Prof_free_report(pob);
-
-   if (cull == GL_TRUE)
-      glEnable(GL_CULL_FACE);
-   if (texture == GL_TRUE)
-      glEnable(GL_TEXTURE_2D);
 
    Prof_End
 #endif
