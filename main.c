@@ -24,6 +24,11 @@ void draw_rectangle(float x0, float y0, float x1, float y1, float r, float g, fl
     DrawRectangle(x0, y0, x1 - x0, y1 - y0, ColorFromNormalized((Vector4){r, g, b, a}));
 }
 
+void draw_line(float x0, float y0, float x1, float y1, float r, float g, float b, float a)
+{
+    DrawLine(x0, y0, x1, y1, ColorFromNormalized((Vector4){r, g, b, a}));
+}
+
 Prof_Define(subframe);
 
 int main()
@@ -57,6 +62,7 @@ int main()
                 Prof_End;
             }
             Prof_draw_gl(0, 0, WIDTH, HEIGHT, FONT_SIZE, 2, print_text, text_width, draw_rectangle);
+            Prof_draw_graph_gl(0, 0, 2.0, 8.0, draw_line);
         EndDrawing();
         Prof_update(record);
     }
