@@ -3,6 +3,12 @@
 
 typedef __int64 Prof_Int64;
 
+#if defined(_MSC_VER)
+  #include <intrin.h>
+#else
+  #include <x86intrin.h>
+#endif
+
 #ifdef __cplusplus
   inline
 #elif _MSC_VER >= 1200
@@ -10,14 +16,8 @@ typedef __int64 Prof_Int64;
 #else
   static
 #endif
-      void Prof_get_timestamp(Prof_Int64 *result)
-      {
-         __asm {
-            rdtsc;
-            mov    ebx, result
-            mov    [ebx], eax
-            mov    [ebx+4], edx
-         }
-      }
-
+void Prof_get_timestamp(Prof_Int64 *result)
+{
+    *result = (Prof_Int64) __rdtsc();
+}
 #endif

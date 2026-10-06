@@ -11,7 +11,7 @@
   #define Prof_dummy_declare   int Prof_dummy_dec =
 #endif
 
-#ifdef WIN32
+#if defined(_WIN32) || defined(WIN32)
   #include "prof_win32.h"
 #elif defined(__linux__)
   #include "prof_linux.h"
